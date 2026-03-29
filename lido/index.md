@@ -39,10 +39,10 @@ These bathtub capacitors include internal inductors (chokes) that are not indica
 ## Schematic References
 
 - **EH Scott forum (Kent King):**  
-  [Allwave-15 variations](https://ehscott.ning.com/forum/topics/allwave-15-variations)
+  [Allwave-15 variations](https://ehscott.ning.com/forum/topics/allwave-15-variations-2)
 
 - **Rider manual:**  
-  [Allwave-15 variations](https://ehscott.ning.com/forum/topics/allwave-15-variations)
+  [Allwave-15 variations](https://www.nostalgiaair.org/pdfs/Scott-Radio-Labs-Inc/Scott-Radio-Labs-Inc-All-Wave-15.pdf)
 ---
 
 ## Component: Bathtub Capacitor (IF Section)
