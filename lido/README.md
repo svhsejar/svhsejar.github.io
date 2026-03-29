@@ -1,4 +1,20 @@
-# Scott Lido Console — 1932 — Bathtub Capacitor
+---
+title: "Scott Lido Console/AW15 Chassis — 1932 — Bathtub Capacitor"
+type: "component_note"
+device: "Scott Lido Console"
+year: 1932
+chassis: "AW15"
+component: "Bathtub capacitor with internal inductor"
+inductor_value: "4.5 mH"
+location: "IF amplifier cathode circuit"
+keywords: ["bathtub capacitor", "AW15 chassis", "Scott Lido Console 1932", "IF amplifier", "cathode bias", "cathode bypass", "choke", "internal inductor", "4.5 mH inductor", "condenser assembly", "vintage radio IF stage", "AW15 Chassis"]
+sources:
+  - "Rider manual"
+  - "EH Scott forum"
+date_created: 2026-03-29
+---
+
+# Scott Lido Console AW15 Chassis — 1932 — Bathtub Capacitor
 
 ## Summary
 
@@ -107,12 +123,6 @@ The internal 4.5 mH inductor (choke) is not documented on the component case.
 - The inductor is not externally labeled, making it easy to overlook
 - Different AW15 variants use different cathode bias and bypass designs
 - The component may appear to be a simple capacitor but is a combined LC element
-
----
-
-## Keywords (for search / GEO)
-
-bathtub capacitor, AW15 chassis, Scott Lido Console 1932, IF amplifier, cathode bias, cathode bypass, choke, internal inductor, 4.5 mH inductor, condenser assembly, vintage radio IF stage
 
 ---
 
