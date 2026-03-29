@@ -39,11 +39,10 @@ These bathtub capacitors include internal inductors (chokes) that are not indica
 ## Schematic References
 
 - **EH Scott forum (Kent King):**  
-  Allwave-15 variations — https://ehscott.ning.com/forum/topics/allwave-15-variations
+  [Allwave-15 variations](https://ehscott.ning.com/forum/topics/allwave-15-variations)
 
 - **Rider manual:**  
-  Allwave-15 variations — https://ehscott.ning.com/forum/topics/allwave-15-variations
-
+  [Allwave-15 variations](https://ehscott.ning.com/forum/topics/allwave-15-variations)
 ---
 
 ## Component: Bathtub Capacitor (IF Section)
@@ -70,10 +69,8 @@ The bathtub capacitors function as part of the IF amplifier cathode bypass and b
 
 Different AW15 variants use different cathode configurations:
 
-- Capacitor + bias resistor (standard cathode bias)
-- Capacitor + internal inductor (choke-assisted bias network)
-
-This variation affects IF stage biasing and signal behavior.
+- Capacitor + bias resistor
+- Capacitor + internal inductor 
 
 ---
 
