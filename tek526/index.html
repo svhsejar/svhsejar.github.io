@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRT Scope Simulator</title>
+    <style>
+        body {
+            background-color: #050505;
+            color: #33ff99;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: auto;
+        }
+
+        h2 {
+            margin: 5px 0 15px 0;
+            font-size: 1.2rem;
+            text-shadow: 0 0 8px rgba(51, 255, 153, 0.5);
+            letter-spacing: 1px;
+        }
+
+        #canvas-container {
+            position: relative;
+            background: #000;
+            border: 2px solid #005522;
+            box-shadow: 0 0 20px rgba(0, 85, 34, 0.4);
+            border-radius: 4px;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            margin-top: 15px;
+            margin-bottom: 15px;
+            background: #111;
+            padding: 12px 20px;
+            border: 1px solid #005522;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 520px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .control-group label {
+            flex: 1;
+        }
+
+        .control-group input[type="range"] {
+            flex: 2;
+            accent-color: #33ff99;
+            cursor: pointer;
+        }
+
+        .control-group span {
+            width: 60px;
+            text-align: right;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Tektronix 526 Vectorscope, test circle/Phase error simulator</h2>
+
+    <div id="canvas-container">
+        <canvas id="crtCanvas" width="550" height="550"></canvas>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="phaseX">Phase X (°):</label>
+            <input type="range" id="phaseX" min="0" max="180" step="0.5" value="0">
+            <span id="valX">0.0°</span>
+        </div>
+        <div class="control-group">
+            <label for="phaseY">Phase Y (°):</label>
+            <input type="range" id="phaseY" min="0" max="180" step="0.5" value="90">
+            <span id="valY">90.0°</span>
+        </div>
+        <div class="control-group">
+            <label for="persistence">Persistence:</label>
+            <input type="range" id="persistence" min="1" max="1000" step="1" value="50">
+            <span id="valPersis">50</span>
+        </div>
+        <div class="control-group">
+            <label for="fps">Refresh Rate (FPS):</label>
+            <input type="range" id="fps" min="5" max="60" step="1" value="60">
+            <span id="valFps">60 FPS</span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('crtCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const sliderX = document.getElementById('phaseX');
+        const sliderY = document.getElementById('phaseY');
+        const sliderPersis = document.getElementById('persistence');
+        const sliderFps = document.getElementById('fps');
+        
+        const valX = document.getElementById('valX');
+        const valY = document.getElementById('valY');
+        const valPersis = document.getElementById('valPersis');
+        const valFps = document.getElementById('valFps');
+
+        // Setup mathematical points (1000 samples for wave loop)
+        const numPoints = 1000;
+        const xBase = new Float64Array(numPoints);
+        for (let i = 0; i < numPoints; i++) {
+            xBase[i] = (i / numPoints) * 2 * Math.PI;
+        }
+
+        let traceHistory = [];
+        let lastTrackedX = null;
+        let lastTrackedY = null;
+        let frameCount = 0;
+        let flipState = 0;
+
+        // Timing control for custom FPS throttling
+        let lastTime = 0;
+        let accumulatedTime = 0;
+
+        function computeWave(pX, pY, isFlipped) {
+            let totalPhaseX = pX + (isFlipped ? 180.0 : 0.0);
+            let radX = totalPhaseX * (Math.PI / 180.0);
+            let radY = pY * (Math.PI / 180.0);
+
+            let xArr = new Float64Array(numPoints);
+            let yArr = new Float64Array(numPoints);
+
+            for (let i = 0; i < numPoints; i++) {
+                xArr[i] = Math.sin(xBase[i] + radX);
+                yArr[i] = Math.sin(xBase[i] + radY);
+            }
+            return { x: xArr, y: yArr };
+        }
+
+        function arraysEqual(a, b) {
+            if (!a || !b) return false;
+            for (let i = 0; i < a.length; i += 50) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+
+        function toScreen(x, y, width, height) {
+            let margin = 40;
+            let size = Math.min(width, height) - (margin * 2);
+            let scale = size / 2.4;
+            
+            let screenX = width / 2 + x * scale;
+            let screenY = height / 2 - y * scale;
+            return { x: screenX, y: screenY };
+        }
+
+        function drawGrid(width, height) {
+            ctx.strokeStyle = '#003311';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+
+            ctx.strokeStyle = '#005522';
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2); ctx.lineTo(width, height / 2);
+            ctx.moveTo(width / 2, 0); ctx.lineTo(width / 2, height);
+            ctx.stroke();
+        }
+
+        function render(currentTime) {
+            requestAnimationFrame(render);
+
+            if (!lastTime) lastTime = currentTime;
+            let deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            let targetFps = parseInt(sliderFps.value);
+            let interval = 1000 / targetFps;
+
+            accumulatedTime += deltaTime;
+            if (accumulatedTime < interval) {
+                return; // Skip frame to match desired frame rate
+            }
+            accumulatedTime %= interval;
+
+            // Update UI text display
+            valX.innerText = parseFloat(sliderX.value).toFixed(1) + '°';
+            valY.innerText = parseFloat(sliderY.value).toFixed(1) + '°';
+            valPersis.innerText = sliderPersis.value;
+            valFps.innerText = targetFps + ' FPS';
+
+            // Automated timing for the 2-second flip based on targeted steps
+            frameCount++;
+            if (frameCount % Math.max(1, Math.round(targetFps * 2)) === 0) {
+                flipState = (flipState === 0) ? 1 : 0;
+            }
+
+            let pX = parseFloat(sliderX.value);
+            let pY = parseFloat(sliderY.value);
+            let maxPersistence = parseInt(sliderPersis.value);
+
+            let currentWave = computeWave(pX, pY, flipState === 1);
+
+            if (lastTrackedX && (!arraysEqual(currentWave.x, lastTrackedX) || !arraysEqual(currentWave.y, lastTrackedY))) {
+                traceHistory.push({ x: lastTrackedX, y: lastTrackedY });
+            }
+            lastTrackedX = currentWave.x;
+            lastTrackedY = currentWave.y;
+
+            while (traceHistory.length > maxPersistence) {
+                traceHistory.shift();
+            }
+
+            // --- DRAWING PASS ---
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawGrid(canvas.width, canvas.height);
+
+            // Draw historical background traces
+            ctx.lineWidth = 1.0;
+            ctx.strokeStyle = 'rgba(0, 170, 68, 0.35)';
+            for (let trace of traceHistory) {
+                ctx.beginPath();
+                for (let i = 0; i < numPoints; i++) {
+                    let pt = toScreen(trace.x[i], trace.y[i], canvas.width, canvas.height);
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw active primary trace
+            ctx.lineWidth = 2.0;
+            ctx.strokeStyle = '#33ff99';
+            ctx.shadowColor = '#33ff99';
+            ctx.shadowBlur = 10;
+            
+            ctx.beginPath();
+            for (let i = 0; i < numPoints; i++) {
+                let pt = toScreen(currentWave.x[i], currentWave.y[i], canvas.width, canvas.height);
+                if (i === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function onSliderChange() {
+            if (lastTrackedX) {
+                traceHistory.push({ x: lastTrackedX, y: lastTrackedY });
+            }
+        }
+
+        sliderX.addEventListener('input', onSliderChange);
+        sliderY.addEventListener('input', onSliderChange);
+
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
